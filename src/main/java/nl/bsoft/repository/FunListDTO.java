@@ -1,0 +1,58 @@
+package nl.bsoft.repository;
+
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
+
+import javax.persistence.*;
+
+
+/**
+ * Created by bvpelt on 4/17/17.
+ */
+@Entity
+public class FunListDTO {
+    @GenericGenerator(
+            name = "listSequenceGenerator",
+            strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
+            parameters = {
+                    @Parameter(name = "sequence_name", value = "LIST_SEQUENCE"),
+                    @Parameter(name = "initial_value", value = "1000"),
+                    @Parameter(name = "increment_size", value = "1")
+            }
+    )
+    @Id
+    @GeneratedValue(generator = "listSequenceGenerator")
+    @Column(name = "LIST_ID")
+    private Long id;
+    private String value;
+
+    @ManyToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
+    @JoinColumn(name = "FUNOBJECT_ID")
+    private FunObjectDTO funObject;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public FunObjectDTO getFunObject() {
+        return funObject;
+    }
+
+    public void setFunObject(FunObjectDTO funObject) {
+        this.funObject = funObject;
+    }
+
+
+}
