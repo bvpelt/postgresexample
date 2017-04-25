@@ -17,6 +17,8 @@ Goto the [spring io](https://start.spring.io/) site and choose for
 - [Reading from rest api](https://www.petrikainulainen.net/programming/spring-framework/spring-batch-tutorial-reading-information-from-a-rest-api/)
 - Hibernate
 	- [One to many](https://en.wikibooks.org/wiki/Java_Persistence/OneToMany)
+	- [Many_to_many](https://en.wikibooks.org/wiki/Java_Persistence/ManyToMany)
+	- [Many_to_many](https://hellokoding.com/jpa-many-to-many-relationship-mapping-example-with-spring-boot-maven-and-mysql/)
 	- [One to one](https://en.wikibooks.org/wiki/Java_Persistence/OneToOne)
 	- [Flushing](http://stackoverflow.com/questions/2302802/object-references-an-unsaved-transient-instance-save-the-transient-instance-be)
 

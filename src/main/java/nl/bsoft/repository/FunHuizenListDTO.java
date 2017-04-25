@@ -4,13 +4,14 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 
 
 /**
  * Created by bvpelt on 4/17/17.
  */
 @Entity
-public class FunHuizenListDTO {
+public class FunHuizenListDTO implements Serializable {
 
     @GenericGenerator(
             name = "huizenSequenceGenerator",
@@ -27,9 +28,12 @@ public class FunHuizenListDTO {
     private Long id;
     private String value;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "PROJECT_ID")
     private FunProjectDTO funProject;
+
+    public FunHuizenListDTO() {
+    }
 
     // --- Getters and Setters
 

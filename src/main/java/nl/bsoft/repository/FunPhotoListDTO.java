@@ -4,13 +4,14 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 
 
 /**
  * Created by bvpelt on 4/17/17.
  */
 @Entity
-public class FunPhotoListDTO {
+public class FunPhotoListDTO implements Serializable {
     @GenericGenerator(
             name = "photoListSequenceGenerator",
             strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
@@ -26,10 +27,13 @@ public class FunPhotoListDTO {
     private Long id;
     private String value;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "PROJECT_ID")
     private FunPromoLabelObjectDTO promoLabelObject;
 
+    public FunPhotoListDTO() {
+
+    }
     // --- Getters and Setters
 
     public Long getId() {

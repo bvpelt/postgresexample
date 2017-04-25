@@ -5,13 +5,14 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 
 
 /**
  * Created by bvpelt on 4/15/17.
  */
 @Entity
-public class FunPrijsDTO {
+public class FunPrijsDTO implements Serializable {
     @GenericGenerator(
             name = "prijsSequenceGenerator",
             strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
@@ -26,7 +27,7 @@ public class FunPrijsDTO {
     @Column(name = "PRIJS_ID")
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL, mappedBy = "prijs")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "prijs")
     @JoinColumn(name = "FUNOBJECT_ID")
     private FunObjectDTO funObject;
 
@@ -51,6 +52,9 @@ public class FunPrijsDTO {
     private Integer originelePrijs;         //: null,
 
     private String veilingText;             //:
+
+    public FunPrijsDTO() {
+    }
 
     public FunPrijsDTO(FunPrijs f) {
         setGeenExtraKosten(f.getGeenExtraKosten());

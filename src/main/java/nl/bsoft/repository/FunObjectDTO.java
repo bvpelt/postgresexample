@@ -4,11 +4,12 @@ import nl.bsoft.fun01.FunObject;
 import nl.bsoft.fun01.FunPrijs;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
 
 /**
  * Created by bvpelt on 4/15/17.
@@ -19,7 +20,10 @@ import java.util.List;
         @Index(name = "ID_INDEX", columnList = "FUNOBJECT_ID", unique = true),
         @Index(name = "globalId_Index", columnList = "globalId", unique = true)
 })
-public class FunObjectDTO {
+public class FunObjectDTO implements Serializable {
+    @Transient
+    private final Logger log = LoggerFactory.getLogger(FunObjectDTO.class);
+
     @GenericGenerator(
             name = "objectSequenceGenerator",
             strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
@@ -131,7 +135,7 @@ public class FunObjectDTO {
 
     private String postcode;                     //: 3904EL,
 
-    @OneToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "PRIJS_ID")
     private FunPrijsDTO prijs;                   /*:
         GeenExtraKosten: false,
@@ -153,10 +157,14 @@ public class FunObjectDTO {
 
     private String prijsGeformatteerdTextKoop;   //: <span class=\price-wrapper\><span class=\price\>&euro;&nbsp;209.000<\/span> <abbr class=\price-ext\>k.k.<\/abbr><\/span>,
 
-    @OneToMany(mappedBy = "funObject")
-    private List<FunListDTO> producten;              //: [Video,Plattegrond,360-fotos,Brochure],
 
-    @OneToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinTable(name = "object_product",
+            joinColumns = @JoinColumn(name = "OBJECT_ID", referencedColumnName = "FUNOBJECT_ID"),
+            inverseJoinColumns = @JoinColumn(name = "PRODUCTLIST_ID", referencedColumnName = "FUN_PRODUCTLIST_ID"))
+    private Set<FunProductListDTO> producten = new HashSet<FunProductListDTO>();
+
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "PROJECT_ID")
     private FunProjectDTO project;               /*:          {
         AantalKamersTotEnMet: null,
@@ -188,7 +196,7 @@ public class FunObjectDTO {
 
     private String projectNaam;            //: null,
 
-    @OneToOne(fetch = FetchType.LAZY,cascade=CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "PROMOLABEL_ID")
     private FunPromoLabelObjectDTO promoLabel;   /* :          {
         HasPromotionLabel: false,
@@ -238,6 +246,9 @@ public class FunObjectDTO {
 
     private Integer[] zoekType;             //: [10]
 
+    public FunObjectDTO() {
+    }
+
     public FunObjectDTO(FunObject f) {
         updateObject(f);
     }
@@ -258,6 +269,7 @@ public class FunObjectDTO {
             for (String s : fls) {
                 FunListDTO fod = new FunListDTO();
                 fod.setValue(new String(s));
+                fod.setFunObject(this);
                 fld.add(fod);
             }
         }
@@ -306,6 +318,7 @@ public class FunObjectDTO {
             for (String s : fls_o) {
                 FunListDTO fod = new FunListDTO();
                 fod.setValue(new String(s));
+                fod.setFunObject(this);
                 fld_o.add(fod);
             }
         }
@@ -316,31 +329,23 @@ public class FunObjectDTO {
 
         FunPrijs fp = f.getPrijs();
         FunPrijsDTO fpo = new FunPrijsDTO(fp);
+        fpo.setFunObject(this);
         setPrijs(fpo);
 
         setPrijsGeformatteerdHtml(f.getPrijsGeformatteerdHtml());
         setPrijsGeformatteerdTextHuur(f.getPrijsGeformatteerdTextHuur());
         setPrijsGeformatteerdTextKoop(f.getPrijsGeformatteerdTextKoop());
 
-        List<String> fls_p = f.getProducten();
-        List<FunListDTO> fld_p = null;
-        if ((fls_p != null) && (fls_p.size() > 0)) {
-            fld_p = new ArrayList<FunListDTO>();
-            for (String s : fls_p) {
-                FunListDTO fod = new FunListDTO();
-                fod.setValue(new String(s));
-                fld_p.add(fod);
-            }
-        }
-        setProducten(fld_p);
+        // List<String> fls_p = f.getProducten();
 
         FunProjectDTO project = new FunProjectDTO(f.getProject());
         setProject(project);
-
         setProjectNaam(f.getProjectNaam());
+        project.setFunObject(this);
 
         FunPromoLabelObjectDTO promoLabel = new FunPromoLabelObjectDTO(f.getPromoLabel());
         setPromoLabel(promoLabel);
+        promoLabel.setFunObject(this);
 
         setPublicatieDatum(DotNetDateToJavaDate.convert(f.getPublicatieDatum()));
         setPublicatieStatus(f.getPublicatieStatus());
@@ -363,6 +368,35 @@ public class FunObjectDTO {
         setWoonPlaats(f.getWoonPlaats());
         setZoekType(f.getZoekType());
     }
+
+    public void addProduct(FunProductListDTO product) {
+        log.info("Add product {} with id: {}", product, product.getId());
+        //prevent endless loop
+        if (producten.contains(product)) {
+            log.info("Add product {} with id: {} - already exists", product, product.getId());
+            return;
+        }
+        //add new product
+        log.info("Add product {} with id: {} - new", product, product.getId());
+        producten.add(product);
+        //set myself into the funObjectn;
+        product.addObject(this);
+    }
+
+    public void removeProduct(FunProductListDTO product) {
+        log.info("remove product {} with id: {}", product, product.getId());
+        //prevent endless loop
+        if (!producten.contains(product)) {
+            log.info("remove product {} with id: {} - not found", product, product.getId());
+            return;
+        }
+        //remove the product
+        log.info("remove product {} with id: {} - removed", product, product.getId());
+        producten.remove(product.getValue());
+        //remove myself from the funObjecten
+        product.removeObject(this);
+    }
+
 
     // -- Getters and Setters
 
@@ -783,11 +817,11 @@ public class FunObjectDTO {
         this.prijsGeformatteerdTextKoop = prijsGeformatteerdTextKoop;
     }
 
-    public List<FunListDTO> getProducten() {
+    public Set<FunProductListDTO> getProducten() {
         return producten;
     }
 
-    public void setProducten(List<FunListDTO> producten) {
+    public void setProducten(Set<FunProductListDTO> producten) {
         this.producten = producten;
     }
 

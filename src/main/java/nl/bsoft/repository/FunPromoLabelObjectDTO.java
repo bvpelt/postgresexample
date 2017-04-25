@@ -5,6 +5,7 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
  * Created by bvpelt on 4/15/17.
  */
 @Entity
-public class FunPromoLabelObjectDTO {
+public class FunPromoLabelObjectDTO implements Serializable {
     @GenericGenerator(
             name = "promoLabelSequenceGenerator",
             strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
@@ -27,7 +28,7 @@ public class FunPromoLabelObjectDTO {
     @Column(name = "PROMOLABEL_ID")
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL, mappedBy = "promoLabel")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "promoLabel")
     private FunObjectDTO funObject;
 
     private Boolean hasPromotionLabel;    //: false,
@@ -44,6 +45,9 @@ public class FunPromoLabelObjectDTO {
     private String ribbonText;            //: null,
 
     private String tagline;               //: null
+
+    public FunPromoLabelObjectDTO() {
+    }
 
     public FunPromoLabelObjectDTO(FunPromoLabelObject f) {
         setHasPromotionLabel(f.getHasPromotionLabel());

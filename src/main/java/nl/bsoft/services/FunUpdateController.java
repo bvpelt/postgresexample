@@ -9,18 +9,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by bvpelt on 4/17/17.
@@ -36,6 +35,7 @@ public class FunUpdateController {
 
     private FunObjectRepository repository;
     private FunListRepository listRepository;
+    private FunProductRepository productRepository;
     private FunProjectRepository projectRepository;
     private FunPromoLabelObjectRepository promolabelRepository;
     private FunPrijsRepository prijsRepository;
@@ -48,6 +48,11 @@ public class FunUpdateController {
     @Autowired
     public void setListRepository(FunListRepository repository) {
         this.listRepository = repository;
+    }
+
+    @Autowired
+    public void setProductRepository(FunProductRepository repository) {
+        this.productRepository = repository;
     }
 
     @Autowired
@@ -96,7 +101,7 @@ public class FunUpdateController {
                 for (FunObject f : response.getObjects()) {
                     numObjectsRead++;
                     log.info("number objects read: {}", numObjectsRead);
-                    storeData(f);
+                    storeObject(f);
                 }
                 page++;
                 if (page > response.getPaging().getAantalPaginas().intValue()) {
@@ -165,15 +170,13 @@ public class FunUpdateController {
 
     // using transactions in spring boot http://stackoverflow.com/questions/28606518/spring-boot-spring-data-jpa-transactions-not-working-properly
 
-    //@Transactional(rollbackFor=Exception.class)
     @Transactional
-    private void storeData(FunObject f) {
+    private void storeObject(FunObject f) {
         log.info("retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
         FunObjectDTO fdto = new FunObjectDTO(f);
 
         List<FunListDTO> fchilddto = null;
         List<FunListDTO> fopenhuisdto = null;
-        List<FunListDTO> fproductendto = null;
         FunProjectDTO fprojectdto = null;
         FunPromoLabelObjectDTO fpromo = null;
         FunPrijsDTO fpdto = null;
@@ -187,7 +190,6 @@ public class FunUpdateController {
             log.info("Object did not exist, inserting new object");
             fchilddto = fdto.getChildrenObjects();
             fopenhuisdto = fdto.getOpenHuis();
-            fproductendto = fdto.getProducten();
             fprojectdto = fdto.getProject();
             fpromo = fdto.getPromoLabel();
             fpdto = fdto.getPrijs();
@@ -195,7 +197,6 @@ public class FunUpdateController {
             projectRepository.save(fprojectdto);
             promolabelRepository.save(fpromo);
 
-            repository.save(fdto);
             if (fchilddto != null) {
                 for (FunListDTO f1 : fchilddto) {
                     f1.setFunObject(fdto);
@@ -208,13 +209,24 @@ public class FunUpdateController {
                     listRepository.save(f2);
                 }
             }
+
             prijsRepository.save(fpdto);
-            if (fproductendto != null) {
-                for (FunListDTO f3 : fproductendto) {
-                    f3.setFunObject(fdto);
-                    listRepository.save(f3);
+
+            Set<FunProductListDTO> prodList = new HashSet<FunProductListDTO>();
+            for (String s : f.getProducten()) {
+                FunProductListDTO oldProd = productRepository.findByValue(s);
+                if (null == oldProd) {
+                    FunProductListDTO prod = new FunProductListDTO();
+                    prod.setValue(s);
+                    prod.addObject(fdto);
+                    prodList.add(prod);
+                    productRepository.save(prod);
+                } else {
+                    oldProd.addObject(fdto);
+                    productRepository.save(oldProd);
                 }
             }
+            repository.save(fdto);
             numObjectsWritten++;
             log.info("number objects written: {}", numObjectsWritten);
         } else {
@@ -222,4 +234,5 @@ public class FunUpdateController {
 
         }
     }
+
 }

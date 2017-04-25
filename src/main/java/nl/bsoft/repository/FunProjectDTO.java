@@ -5,13 +5,14 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by bvpelt on 4/15/17.
  */
 @Entity
-public class FunProjectDTO {
+public class FunProjectDTO implements Serializable {
     @GenericGenerator(
             name = "projectSequenceGenerator",
             strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
@@ -26,7 +27,7 @@ public class FunProjectDTO {
     @Column(name = "PROJECT_ID")
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL, mappedBy = "project")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "project")
     private FunObjectDTO funObject;
 
     private Integer aantalKamersTotEnMet;               //: null,
@@ -79,6 +80,10 @@ public class FunProjectDTO {
     private Integer type;                               //: 0,
 
     private String woningtypen;                         //: null
+
+    public FunProjectDTO() {
+
+    }
 
     public FunProjectDTO(FunProject f) {
         setAantalKamersTotEnMet(f.getAantalKamersTotEnMet());
