@@ -36,25 +36,32 @@ public class Fun01ApplicationTests {
     public void testReader() {
         String url = "http://partnerapi.funda.nl/feeds/Aanbod.svc/json/a001e6c3ee6e4853ab18fe44cc1494de/?type=koop&zo=/veenendaal/appartement/&page=";
 
+        int page = 1;
+        boolean goOn = true;
         //ItemReader<FunResponse> reader = funReader(url, restTemplate());
-        boolean getMore = true;
 
         FunResponse fobj = null;
 
-        int page = 1;
-
-        while (getMore) {
+        while (goOn) {
             String myUrl = url + Integer.toString(page);
             ItemReader<FunResponse> reader = funReader(myUrl, restTemplate());
 
             try {
                 fobj = reader.read();
-                System.out.println("Aantal paginas: " + fobj.getPaging().getAantalPaginas());
-                System.out.println("Huidige pagina: " + fobj.getPaging().getHuidigePagina());
-                System.out.println("Volgende pagina: " + fobj.getPaging().getVolgendeUrl());
-                page++;
+                if (fobj == null) {
+                    goOn = false;
+                } else {
+                    System.out.println("Aantal paginas: " + fobj.getPaging().getAantalPaginas());
+                    System.out.println("Huidige pagina: " + fobj.getPaging().getHuidigePagina());
+                    System.out.println("Volgende pagina: " + fobj.getPaging().getVolgendeUrl());
+                    page++;
+
+                    if (page > fobj.getPaging().getAantalPaginas().intValue()) {
+                        goOn = false;
+                    }
+                }
             } catch (Exception e) {
-                getMore = false;
+                goOn = false;
             }
         }
     }

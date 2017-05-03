@@ -7,6 +7,7 @@ public class FunUpdateResult {
 
     private int numObjectsRead;
     private int numObjectsWritten;
+    private int numObjectsUpdated;
     private int status; // -1 error, 0 success
 
     public int getNumObjectsRead() {
@@ -31,5 +32,13 @@ public class FunUpdateResult {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public int getNumObjectsUpdated() {
+        return numObjectsUpdated;
+    }
+
+    public void setNumObjectsUpdated(int numObjectsUpdated) {
+        this.numObjectsUpdated = numObjectsUpdated;
     }
 }

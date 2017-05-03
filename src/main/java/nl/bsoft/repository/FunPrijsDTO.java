@@ -57,6 +57,10 @@ public class FunPrijsDTO implements Serializable {
     }
 
     public FunPrijsDTO(FunPrijs f) {
+        update(f);
+    }
+
+    public void update(FunPrijs f) {
         setGeenExtraKosten(f.getGeenExtraKosten());
         setHuurAbbreviation(f.getHuurAbbreviation());
         setHuurprijs(f.getHuurprijs());

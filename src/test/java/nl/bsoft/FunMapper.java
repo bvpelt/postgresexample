@@ -17,10 +17,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by bvpelt on 4/15/17.
@@ -39,6 +36,7 @@ public class FunMapper {
     private FunPromoLabelObjectRepository promolabelRepository;
     private FunPrijsRepository prijsRepository;
     private int numObjectsWritten = 0;
+    private int numObjectsUpdated = 0;
 
     @Autowired
     public void setRepository(FunObjectRepository repository) {
@@ -86,9 +84,13 @@ public class FunMapper {
     public void doTest() {
         //read json file data to String
 
+        //String fileName = "example-response-01.json";
+        //String fileName = "example-response.json";
+        String fileName = "example-response-02.json";
+
         byte[] jsonData = new byte[0];
         try {
-            jsonData = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("example-response.json").toURI()));
+            jsonData = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource(fileName).toURI()));
             //create ObjectMapper instance
             ObjectMapper objectMapper = new ObjectMapper();
 
@@ -111,7 +113,7 @@ public class FunMapper {
 
     @Transactional
     private void storeObject(FunObject f) {
-        log.info("retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
+        log.info("storeObject -- retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
         FunObjectDTO fdto = new FunObjectDTO(f);
 
         List<FunListDTO> fchilddto = null;
@@ -126,52 +128,104 @@ public class FunMapper {
         FunObjectDTO existDTO = repository.findByGlobalId(f.getGlobalId());
 
         if (existDTO == null) {
-            log.info("Object did not exist, inserting new object");
-            fchilddto = fdto.getChildrenObjects();
-            fopenhuisdto = fdto.getOpenHuis();
-            fprojectdto = fdto.getProject();
-            fpromo = fdto.getPromoLabel();
-            fpdto = fdto.getPrijs();
-
-            projectRepository.save(fprojectdto);
-            promolabelRepository.save(fpromo);
-
-            if (fchilddto != null) {
-                for (FunListDTO f1 : fchilddto) {
-                    f1.setFunObject(fdto);
-                    listRepository.save(f1);
-                }
-            }
-            if (fopenhuisdto != null) {
-                for (FunListDTO f2 : fopenhuisdto) {
-                    f2.setFunObject(fdto);
-                    listRepository.save(f2);
-                }
-            }
-
-            prijsRepository.save(fpdto);
-
-            Set<FunProductListDTO> prodList = new HashSet<FunProductListDTO>();
-            for (String s : f.getProducten()) {
-                FunProductListDTO oldProd = productRepository.findByValue(s);
-                if (null == oldProd) {
-                    FunProductListDTO prod = new FunProductListDTO();
-                    prod.setValue(s);
-                    prod.addObject(fdto);
-                    prodList.add(prod);
-                    productRepository.save(prod);
-                } else {
-                    oldProd.addObject(fdto);
-                    productRepository.save(oldProd);
-                }
-            }
-            repository.save(fdto);
-            numObjectsWritten++;
-            log.info("number objects written: {}", numObjectsWritten);
+            storeNewObject(f, fdto);
         } else {
             log.info("Object did exist, globalId {} try ", f.getGlobalId());
-
+            storeExistingObject(f, existDTO);
         }
     }
 
+    private void storeNewObject(FunObject f, FunObjectDTO fdto) {
+        log.info("Object did not exist, inserting new object");
+
+        List<FunListDTO> fchilddto = fdto.getChildrenObjects();
+        List<FunListDTO> fopenhuisdto = fdto.getOpenHuis();
+        FunProjectDTO fprojectdto = fdto.getProject();
+        FunPromoLabelObjectDTO fpromo = fdto.getPromoLabel();
+        FunPrijsDTO fpdto = fdto.getPrijs();
+
+        projectRepository.save(fprojectdto);
+        promolabelRepository.save(fpromo);
+
+        for (FunListDTO f1 : fchilddto) {
+            f1.setFunObject(fdto);
+            listRepository.save(f1);
+        }
+
+        for (FunListDTO f2 : fopenhuisdto) {
+            f2.setFunObject(fdto);
+            listRepository.save(f2);
+        }
+
+        prijsRepository.save(fpdto);
+
+        Iterator<FunProductListDTO> i = fdto.getProducten().iterator();
+        while (i.hasNext()) {
+            FunProductListDTO curProduct = i.next();
+            productRepository.save(curProduct);
+        }
+
+        repository.save(fdto);
+        incNumObjectsWritten();
+        log.info("number objects written: {}", getNumObjectsWritten());
+    }
+
+    private void storeExistingObject(FunObject f, FunObjectDTO oldFdto) {
+        log.info("Object existed, update object");
+
+        oldFdto.updateObject(f);
+        List<FunListDTO> fchilddto = oldFdto.getChildrenObjects();
+        List<FunListDTO> fopenhuisdto = oldFdto.getOpenHuis();
+        FunProjectDTO fprojectdto = oldFdto.getProject();
+        FunPromoLabelObjectDTO fpromo = oldFdto.getPromoLabel();
+        FunPrijsDTO fpdto = oldFdto.getPrijs();
+
+        projectRepository.save(fprojectdto);
+        promolabelRepository.save(fpromo);
+
+        for (FunListDTO f1 : fchilddto) {
+            listRepository.save(f1);
+        }
+
+        // problem mapping list or array if it already exists. fe openhuis.
+        for (FunListDTO f2 : fopenhuisdto) {
+            listRepository.save(f2);
+        }
+
+        prijsRepository.save(fpdto);
+
+        Iterator<FunProductListDTO> i = oldFdto.getProducten().iterator();
+        while (i.hasNext()) {
+            FunProductListDTO curProduct = i.next();
+            productRepository.save(curProduct);
+        }
+
+        repository.save(oldFdto);
+        incNumObjectsUpdated();
+        log.info("number objects updated: {}", getNumObjectsUpdated());
+    }
+
+    public void incNumObjectsWritten() {
+        numObjectsWritten++;
+    }
+
+    public int getNumObjectsWritten() {
+        return numObjectsWritten;
+    }
+
+    public void setNumObjectsWritten(int numObjectsWritten) {
+        this.numObjectsWritten = numObjectsWritten;
+    }
+
+    public void incNumObjectsUpdated() {
+        numObjectsUpdated++;
+    }
+
+    public int getNumObjectsUpdated() {
+        return numObjectsUpdated;
+    }
+
+    public void setNumObjectsUpdated(int numObjectsUpdated) {
+        this.numObjectsUpdated = numObjectsUpdated;
+    }
 }

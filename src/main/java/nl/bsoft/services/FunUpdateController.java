@@ -17,9 +17,8 @@ import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Created by bvpelt on 4/17/17.
@@ -30,6 +29,7 @@ public class FunUpdateController {
 
     private int numObjectsRead = 0;
     private int numObjectsWritten = 0;
+    private int numObjectsUpdated = 0;
     private int status = -1;
 
 
@@ -99,8 +99,8 @@ public class FunUpdateController {
                 goOn = false;
             } else {
                 for (FunObject f : response.getObjects()) {
-                    numObjectsRead++;
-                    log.info("number objects read: {}", numObjectsRead);
+                    incNumObjectsRead();
+                    log.info("number objects read: {}", getNumObjectsRead());
                     storeObject(f);
                 }
                 page++;
@@ -111,12 +111,14 @@ public class FunUpdateController {
         }
 
         FunUpdateResult fur = new FunUpdateResult();
-        fur.setNumObjectsRead(numObjectsRead);
-        fur.setNumObjectsWritten(numObjectsWritten);
+        fur.setNumObjectsRead(getNumObjectsRead());
+        fur.setNumObjectsWritten(getNumObjectsWritten());
+        fur.setNumObjectsUpdated(getNumObjectsUpdated());
         fur.setStatus(status);
 
         return fur;
     }
+
 
     private FunResponse readFunda(int page) {
         log.info("Start reading page: {}", page);
@@ -147,6 +149,7 @@ public class FunUpdateController {
             file = new FileWriter(fileName, append);
 
             fobj = reader.read();
+            file.write("Writing page: " + Integer.toString(page) + "\n");
             for (FunObject f : fobj.getObjects()) {
                 file.write(f.toJsonString());
                 file.write("\n");
@@ -164,12 +167,13 @@ public class FunUpdateController {
                 log.error("Cannot flush to file: {} {}", fileName, e);
             }
         }
-
+        log.info("End   reading page: {}", page);
         return fobj;
     }
 
     // using transactions in spring boot http://stackoverflow.com/questions/28606518/spring-boot-spring-data-jpa-transactions-not-working-properly
 
+    /*
     @Transactional
     private void storeObject(FunObject f) {
         log.info("retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
@@ -233,6 +237,136 @@ public class FunUpdateController {
             log.info("Object did exist, globalId {} try ", f.getGlobalId());
 
         }
+    }
+*/
+
+    @Transactional
+    private void storeObject(FunObject f) {
+        log.info("storeObject -- retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
+        FunObjectDTO fdto = new FunObjectDTO(f);
+
+        List<FunListDTO> fchilddto = null;
+        List<FunListDTO> fopenhuisdto = null;
+        FunProjectDTO fprojectdto = null;
+        FunPromoLabelObjectDTO fpromo = null;
+        FunPrijsDTO fpdto = null;
+
+        //
+        // If there already exists a fdto with current globalid it already exists, so do not write
+        //
+        FunObjectDTO existDTO = repository.findByGlobalId(f.getGlobalId());
+
+        if (existDTO == null) {
+            storeNewObject(f, fdto);
+        } else {
+            log.info("Object did exist, globalId {} try ", f.getGlobalId());
+            storeExistingObject(f, existDTO);
+        }
+    }
+
+    private void storeNewObject(FunObject f, FunObjectDTO fdto) {
+        log.info("Object did not exist, inserting new object");
+
+        List<FunListDTO> fchilddto = fdto.getChildrenObjects();
+        List<FunListDTO> fopenhuisdto = fdto.getOpenHuis();
+        FunProjectDTO fprojectdto = fdto.getProject();
+        FunPromoLabelObjectDTO fpromo = fdto.getPromoLabel();
+        FunPrijsDTO fpdto = fdto.getPrijs();
+
+        projectRepository.save(fprojectdto);
+        promolabelRepository.save(fpromo);
+
+        for (FunListDTO f1 : fchilddto) {
+            f1.setFunObject(fdto);
+            listRepository.save(f1);
+        }
+
+        for (FunListDTO f2 : fopenhuisdto) {
+            f2.setFunObject(fdto);
+            listRepository.save(f2);
+        }
+
+        prijsRepository.save(fpdto);
+
+        Iterator<FunProductListDTO> i = fdto.getProducten().iterator();
+        while (i.hasNext()) {
+            FunProductListDTO curProduct = i.next();
+            productRepository.save(curProduct);
+        }
+
+        repository.save(fdto);
+        incNumObjectsWritten();
+        log.info("number objects written: {}", getNumObjectsWritten());
+    }
+
+    private void storeExistingObject(FunObject f, FunObjectDTO oldFdto) {
+        log.info("Object existed, update object");
+
+        oldFdto.updateObject(f);
+        List<FunListDTO> fchilddto = oldFdto.getChildrenObjects();
+        List<FunListDTO> fopenhuisdto = oldFdto.getOpenHuis();
+        FunProjectDTO fprojectdto = oldFdto.getProject();
+        FunPromoLabelObjectDTO fpromo = oldFdto.getPromoLabel();
+        FunPrijsDTO fpdto = oldFdto.getPrijs();
+
+        projectRepository.save(fprojectdto);
+        promolabelRepository.save(fpromo);
+
+        for (FunListDTO f1 : fchilddto) {
+            listRepository.save(f1);
+        }
+
+        for (FunListDTO f2 : fopenhuisdto) {
+            listRepository.save(f2);
+        }
+
+        prijsRepository.save(fpdto);
+
+        Iterator<FunProductListDTO> i = oldFdto.getProducten().iterator();
+        while (i.hasNext()) {
+            FunProductListDTO curProduct = i.next();
+            productRepository.save(curProduct);
+        }
+
+        repository.save(oldFdto);
+        incNumObjectsUpdated();
+        log.info("number objects updated: {}", getNumObjectsUpdated());
+    }
+
+    public int getNumObjectsRead() {
+        return numObjectsRead;
+    }
+
+    public void setNumObjectsRead(int numObjectsRead) {
+        this.numObjectsRead = numObjectsRead;
+    }
+
+    public void incNumObjectsRead() {
+        numObjectsRead++;
+    }
+
+    public void incNumObjectsWritten() {
+        numObjectsWritten++;
+    }
+
+    public int getNumObjectsWritten() {
+        return numObjectsWritten;
+    }
+
+    public void setNumObjectsWritten(int numObjectsWritten) {
+        this.numObjectsWritten = numObjectsWritten;
+    }
+
+    public void incNumObjectsUpdated() {
+        numObjectsUpdated++;
+    }
+
+    public int getNumObjectsUpdated() {
+        return numObjectsUpdated;
+    }
+
+    public void setNumObjectsUpdated(int numObjectsUpdated) {
+        this.numObjectsUpdated = numObjectsUpdated;
     }
 
 }

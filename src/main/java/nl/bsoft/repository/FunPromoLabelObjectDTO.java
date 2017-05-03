@@ -34,7 +34,7 @@ public class FunPromoLabelObjectDTO implements Serializable {
     private Boolean hasPromotionLabel;    //: false,
 
     @OneToMany(mappedBy = "promoLabelObject")
-    private List<FunPhotoListDTO> promotionPhotos;     //: [],
+    private List<FunPhotoListDTO> promotionPhotos = new ArrayList<FunPhotoListDTO>();     //: [],
 
     private String promotionPhotosSecure; //: null,
 
@@ -50,13 +50,41 @@ public class FunPromoLabelObjectDTO implements Serializable {
     }
 
     public FunPromoLabelObjectDTO(FunPromoLabelObject f) {
+        update(f);
+    }
+
+    public void update(FunPromoLabelObject f) {
         setHasPromotionLabel(f.getHasPromotionLabel());
 
+        /*
         List<String> fls_p = f.getPromotionPhotos();
         List<FunPhotoListDTO> fld_p = null;
         if ((fls_p != null) && (fls_p.size() > 0)) {
             fld_p = new ArrayList<FunPhotoListDTO>();
             for (String s : fls_p) {
+                FunPhotoListDTO fod = new FunPhotoListDTO();
+                fod.setValue(s);
+                fld_p.add(fod);
+            }
+        }
+        */
+        List<String> fls_p = f.getPromotionPhotos(); // String list
+        List<FunPhotoListDTO> fld_p = null;          // new List
+        fld_p = new ArrayList<FunPhotoListDTO>();
+
+        for (String s : fls_p) {
+            boolean found = false;
+            int maxFotos = promotionPhotos.size();
+            int i = 0;
+            while (!found && i < maxFotos) {
+                found = promotionPhotos.get(i).getValue().equals(s);
+                if (!found) {
+                    i++;
+                }
+            }
+            if (found) {
+                fld_p.add(promotionPhotos.get(i));
+            } else {
                 FunPhotoListDTO fod = new FunPhotoListDTO();
                 fod.setValue(s);
                 fld_p.add(fod);

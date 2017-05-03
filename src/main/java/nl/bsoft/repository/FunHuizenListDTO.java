@@ -35,6 +35,10 @@ public class FunHuizenListDTO implements Serializable {
     public FunHuizenListDTO() {
     }
 
+    void addProject(FunProjectDTO project) {
+        this.funProject = project;
+    }
+
     // --- Getters and Setters
 
     public Long getId() {

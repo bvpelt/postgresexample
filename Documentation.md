@@ -1,5 +1,11 @@
 # Fun01
 
+## Start project
+See [http://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html](http://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html)
+
+``` 
+mvn spring-boot:run
+```
 ## Initial Setup project
 Goto the [spring io](https://start.spring.io/) site and choose for
 - Jersey (JAX-RS)
@@ -101,3 +107,9 @@ postgres-# \q
 -bash-4.3$ logout
 [root@pluto ~]# 
 ```
+
+## Date
+See [http://www.thoughts-on-java.org/persist-localdate-localdatetime-jpa/](http://www.thoughts-on-java.org/persist-localdate-localdatetime-jpa/)
+
+## Hibernate
+See [Cascading types](https://vladmihalcea.com/2015/03/05/a-beginners-guide-to-jpa-and-hibernate-cascade-types/)

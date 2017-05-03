@@ -6,6 +6,7 @@ import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,7 +28,7 @@ public class FunProjectDTO implements Serializable {
     @Column(name = "PROJECT_ID")
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "project")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "project", cascade = CascadeType.ALL)
     private FunObjectDTO funObject;
 
     private Integer aantalKamersTotEnMet;               //: null,
@@ -67,7 +68,7 @@ public class FunProjectDTO implements Serializable {
     private String omschrijving;                        //: null,
 
     @OneToMany(mappedBy = "funProject")
-    private List<FunHuizenListDTO> openHuizen;                    //: [],
+    private List<FunHuizenListDTO> openHuizen = new ArrayList<FunHuizenListDTO>();          //: [],
 
     private String plaats;                              //: null,
 
@@ -86,6 +87,10 @@ public class FunProjectDTO implements Serializable {
     }
 
     public FunProjectDTO(FunProject f) {
+        update(f);
+    }
+
+    public void update(FunProject f) {
         setAantalKamersTotEnMet(f.getAantalKamersTotEnMet());
         setAantalKamersVan(f.getAantalKamersVan());
         setAantalKavels(f.getAantalKavels());
@@ -105,8 +110,9 @@ public class FunProjectDTO implements Serializable {
         setNaam(f.getNaam());
         setOmschrijving(f.getOmschrijving());
 
-        List<String> fls_h = f.getOpenHuizen();
-        List<FunHuizenListDTO> fld_h = null;
+/*
+        List<String> fls_h = f.getOpenHuizen(); // String list
+        List<FunHuizenListDTO> fld_h = null;    // New list
         if ((fls_h != null) && (fls_h.size() > 0)) {
             for (String s : fls_h) {
                 FunHuizenListDTO fod = new FunHuizenListDTO();
@@ -114,7 +120,10 @@ public class FunProjectDTO implements Serializable {
                 fld_h.add(fod);
             }
         }
-        setOpenHuizen(fld_h);
+*/
+
+        updateList(getOpenHuizen(), f);
+
 
         setPlaats(f.getPlaats());
         setPrijs(f.getPrijs());
@@ -123,6 +132,42 @@ public class FunProjectDTO implements Serializable {
         setType(f.getType());
         setWoningtypen(f.getWoningtypen());
     }
+
+    private void updateList(List<FunHuizenListDTO> curList, FunProject f) {
+        List<String> fls_h = f.getOpenHuizen();                            // String list
+        List<FunHuizenListDTO> fld_h = new ArrayList<FunHuizenListDTO>();  // New list
+
+        if ((f.getOpenHuizen() != null) && (f.getOpenHuizen().size() > 0)) {
+
+            for (String s : fls_h) {
+                boolean found = false;
+                int maxHuizen = curList.size();
+                int i = 0;
+                while (!found && i < maxHuizen) {
+                    found = curList.get(i).getValue().equals(s);
+                    if (!found) {
+                        i++;
+                    }
+                }
+                if (found) {
+                    fld_h.add(curList.get(i));
+                } else { // not found
+                    FunHuizenListDTO fod = new FunHuizenListDTO();
+                    fod.setValue(s);
+                    fod.addProject(this);
+                    fld_h.add(fod);
+                }
+            }
+            // Clean list
+            curList.removeAll(curList);
+            // (Re)Place elements from newlist in oldList
+            for (FunHuizenListDTO h : fld_h) {
+                curList.add(h);
+            }
+        }
+
+    }
+
 
     // --- Getters and Setters
 
@@ -341,4 +386,5 @@ public class FunProjectDTO implements Serializable {
     public void setWoningtypen(String woningtypen) {
         this.woningtypen = woningtypen;
     }
+
 }
