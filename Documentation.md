@@ -108,6 +108,8 @@ postgres-# \q
 [root@pluto ~]# 
 ```
 
+See [repositie querie examples](https://www.petrikainulainen.net/programming/spring-framework/spring-data-jpa-tutorial-introduction-to-query-methods/)
+
 ## Date
 See [http://www.thoughts-on-java.org/persist-localdate-localdatetime-jpa/](http://www.thoughts-on-java.org/persist-localdate-localdatetime-jpa/)
 

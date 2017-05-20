@@ -4008,5 +4008,12 @@
         10
       ]
     }
-  ]
+  ],
+  "Paging": {
+    "AantalPaginas": 1,
+    "HuidigePagina": 1,
+    "VolgendeUrl": "/~/koop/veenendaal/appartement/",
+    "VorigeUrl": null
+  },
+  "TotaalAantalObjecten": 15
 }

@@ -260,6 +260,10 @@ public class FunObjectDTO implements Serializable {
 
     private Integer[] zoekType;             //: [10]
 
+    // additional relation
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "funObject", cascade = CascadeType.ALL)
+    private List<FunKoopPrijsDTO> koopPrijzen = new ArrayList<FunKoopPrijsDTO>();
+
     public FunObjectDTO() {
     }
 
@@ -361,7 +365,7 @@ public class FunObjectDTO implements Serializable {
         setZoekType(f.getZoekType());
     }
 
-    private Set<FunProductListDTO> updateProducten(Set<FunProductListDTO> oldDto, List<String> products) {
+    private Set<FunProductListDTO> updateProducten(final Set<FunProductListDTO> oldDto, final List<String> products) {
         Set<FunProductListDTO> retDTO = new HashSet<FunProductListDTO>();
 
         // for each element of products
@@ -385,7 +389,7 @@ public class FunObjectDTO implements Serializable {
         return retDTO;
     }
 
-    private FunProductListDTO findStringInProductList(String s, Set<FunProductListDTO> oldDto) {
+    private FunProductListDTO findStringInProductList(final String s, final Set<FunProductListDTO> oldDto) {
         FunProductListDTO matchedProduct = null;
         boolean found = false;
         Iterator<FunProductListDTO> i = oldDto.iterator();
@@ -399,10 +403,11 @@ public class FunObjectDTO implements Serializable {
         return matchedProduct;
     }
 
-    private FunPrijsDTO updatePrijs(FunPrijsDTO oldDto, FunPrijs prijs) {
+    private FunPrijsDTO updatePrijs(final FunPrijsDTO oldDto, final FunPrijs prijs) {
         FunPrijsDTO retDTO = null;
         if (null == oldDto) {
             retDTO = new FunPrijsDTO(prijs);
+            retDTO.setFunObject(this);
         } else {
             retDTO = oldDto;
             retDTO.update(prijs);
@@ -410,10 +415,11 @@ public class FunObjectDTO implements Serializable {
         return retDTO;
     }
 
-    private FunPromoLabelObjectDTO updatePromoLabel(FunPromoLabelObjectDTO oldDto, FunPromoLabelObject promolabel) {
+    private FunPromoLabelObjectDTO updatePromoLabel(final FunPromoLabelObjectDTO oldDto, final FunPromoLabelObject promolabel) {
         FunPromoLabelObjectDTO retDTO = null;
         if (null == oldDto) {
             retDTO = new FunPromoLabelObjectDTO(promolabel);
+            retDTO.setFunObject(this);
         } else {
             retDTO = oldDto;
             retDTO.update(promolabel);
@@ -421,10 +427,11 @@ public class FunObjectDTO implements Serializable {
         return retDTO;
     }
 
-    private FunProjectDTO updateProject(FunProjectDTO oldDto, FunProject project) {
+    private FunProjectDTO updateProject(final FunProjectDTO oldDto, final FunProject project) {
         FunProjectDTO retDTO = null;
         if (null == oldDto) {
             retDTO = new FunProjectDTO(project);
+            retDTO.setFunObject(this);
         } else {
             retDTO = oldDto;
             retDTO.update(project);
@@ -432,25 +439,21 @@ public class FunObjectDTO implements Serializable {
         return retDTO;
     }
 
-    private List<FunListDTO> updateList(List<FunListDTO> dtoList, List<String> strList) {
-        List<FunListDTO> dtoReturn = dtoList;
+    private List<FunListDTO> updateList(final List<FunListDTO> dtoList, final List<String> strList) {
+        List<FunListDTO> dtoReturn = new ArrayList<FunListDTO>();
 
-        if (dtoList == null) {
-            dtoList = new ArrayList<FunListDTO>();
-            dtoReturn = dtoList;
-        }
         if (dtoList.size() == 0) { // add elements
             for (String s : strList) {
                 FunListDTO fdto = new FunListDTO();
                 fdto.setFunObject(this);
                 fdto.setValue(s);
-                dtoList.add(fdto);
+                dtoReturn.add(fdto);
             }
-        } else { // update elements
+        } else {
+            // update elements
             // foreach element
             //   if s in oldlist put s in dtoReturn
             //   if s not in oldlist create new element and put in dtoReturn
-            dtoReturn = new ArrayList<FunListDTO>();
 
             for (String s : strList) {
                 int i = listContains(dtoList, s);
@@ -468,7 +471,16 @@ public class FunObjectDTO implements Serializable {
         return dtoReturn;
     }
 
-    private int listContains(List<FunListDTO> dtoList, String s) {
+    public void addKoopPrijs(FunKoopPrijsDTO koopPrijs) {
+        if (koopPrijzen.contains(koopPrijs)) {
+            return;
+        }
+        // add new koopprijs
+        koopPrijs.setFunObject(this);
+        koopPrijzen.add(koopPrijs);
+    }
+
+    private int listContains(final List<FunListDTO> dtoList, final String s) {
         boolean found = false;
 
         int size = dtoList.size();
@@ -1109,5 +1121,13 @@ public class FunObjectDTO implements Serializable {
 
     public void setZoekType(Integer[] zoekType) {
         this.zoekType = zoekType;
+    }
+
+    public List<FunKoopPrijsDTO> getKoopPrijzen() {
+        return koopPrijzen;
+    }
+
+    public void setKoopPrijzen(List<FunKoopPrijsDTO> koopPrijzen) {
+        this.koopPrijzen = koopPrijzen;
     }
 }

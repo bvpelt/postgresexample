@@ -2,6 +2,7 @@ package nl.bsoft;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.bsoft.fun01.FunObject;
+import nl.bsoft.fun01.FunProcessor;
 import nl.bsoft.fun01.FunResponse;
 import nl.bsoft.repository.*;
 import org.junit.Test;
@@ -9,10 +10,12 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.transaction.Transactional;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -35,8 +38,7 @@ public class FunMapper {
     private FunProjectRepository projectRepository;
     private FunPromoLabelObjectRepository promolabelRepository;
     private FunPrijsRepository prijsRepository;
-    private int numObjectsWritten = 0;
-    private int numObjectsUpdated = 0;
+    private FunKoopPrijsRepository koopPrijsRepository;
 
     @Autowired
     public void setRepository(FunObjectRepository repository) {
@@ -68,6 +70,12 @@ public class FunMapper {
         this.prijsRepository = repository;
     }
 
+    @Autowired
+    public void setKoopPrijsRepository(FunKoopPrijsRepository repository) {
+        this.koopPrijsRepository = repository;
+    }
+
+
     @Test
     public void contextLoads() {
     }
@@ -85,8 +93,19 @@ public class FunMapper {
         //read json file data to String
 
         //String fileName = "example-response-01.json";
-        //String fileName = "example-response.json";
-        String fileName = "example-response-02.json";
+        String fileName = "example-response.json";
+        //String fileName = "example-response-02.json";
+        //String fileName = "example-response-03.json";
+
+        FunProcessor processor = new FunProcessor();
+        processor.setRepository(repository);
+        processor.setPrijsRepository(prijsRepository);
+        processor.setProductRepository(productRepository);
+        processor.setPromolabelRepository(promolabelRepository);
+        processor.setProjectRepository(projectRepository);
+        processor.setListRepository(listRepository);
+        processor.setKoopPrijsRepository(koopPrijsRepository);
+
 
         byte[] jsonData = new byte[0];
         try {
@@ -99,7 +118,8 @@ public class FunMapper {
 
             for (FunObject f : response.getObjects()) {
                 log.info("retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
-                storeObject(f);
+                processor.storeObject(f);
+                //storeObject(f);
             }
 
             System.out.println("Response: " + response);
@@ -111,121 +131,4 @@ public class FunMapper {
         }
     }
 
-    @Transactional
-    private void storeObject(FunObject f) {
-        log.info("storeObject -- retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
-        FunObjectDTO fdto = new FunObjectDTO(f);
-
-        List<FunListDTO> fchilddto = null;
-        List<FunListDTO> fopenhuisdto = null;
-        FunProjectDTO fprojectdto = null;
-        FunPromoLabelObjectDTO fpromo = null;
-        FunPrijsDTO fpdto = null;
-
-        //
-        // If there already exists a fdto with current globalid it already exists, so do not write
-        //
-        FunObjectDTO existDTO = repository.findByGlobalId(f.getGlobalId());
-
-        if (existDTO == null) {
-            storeNewObject(f, fdto);
-        } else {
-            log.info("Object did exist, globalId {} try ", f.getGlobalId());
-            storeExistingObject(f, existDTO);
-        }
-    }
-
-    private void storeNewObject(FunObject f, FunObjectDTO fdto) {
-        log.info("Object did not exist, inserting new object");
-
-        List<FunListDTO> fchilddto = fdto.getChildrenObjects();
-        List<FunListDTO> fopenhuisdto = fdto.getOpenHuis();
-        FunProjectDTO fprojectdto = fdto.getProject();
-        FunPromoLabelObjectDTO fpromo = fdto.getPromoLabel();
-        FunPrijsDTO fpdto = fdto.getPrijs();
-
-        projectRepository.save(fprojectdto);
-        promolabelRepository.save(fpromo);
-
-        for (FunListDTO f1 : fchilddto) {
-            f1.setFunObject(fdto);
-            listRepository.save(f1);
-        }
-
-        for (FunListDTO f2 : fopenhuisdto) {
-            f2.setFunObject(fdto);
-            listRepository.save(f2);
-        }
-
-        prijsRepository.save(fpdto);
-
-        Iterator<FunProductListDTO> i = fdto.getProducten().iterator();
-        while (i.hasNext()) {
-            FunProductListDTO curProduct = i.next();
-            productRepository.save(curProduct);
-        }
-
-        repository.save(fdto);
-        incNumObjectsWritten();
-        log.info("number objects written: {}", getNumObjectsWritten());
-    }
-
-    private void storeExistingObject(FunObject f, FunObjectDTO oldFdto) {
-        log.info("Object existed, update object");
-
-        oldFdto.updateObject(f);
-        List<FunListDTO> fchilddto = oldFdto.getChildrenObjects();
-        List<FunListDTO> fopenhuisdto = oldFdto.getOpenHuis();
-        FunProjectDTO fprojectdto = oldFdto.getProject();
-        FunPromoLabelObjectDTO fpromo = oldFdto.getPromoLabel();
-        FunPrijsDTO fpdto = oldFdto.getPrijs();
-
-        projectRepository.save(fprojectdto);
-        promolabelRepository.save(fpromo);
-
-        for (FunListDTO f1 : fchilddto) {
-            listRepository.save(f1);
-        }
-
-        // problem mapping list or array if it already exists. fe openhuis.
-        for (FunListDTO f2 : fopenhuisdto) {
-            listRepository.save(f2);
-        }
-
-        prijsRepository.save(fpdto);
-
-        Iterator<FunProductListDTO> i = oldFdto.getProducten().iterator();
-        while (i.hasNext()) {
-            FunProductListDTO curProduct = i.next();
-            productRepository.save(curProduct);
-        }
-
-        repository.save(oldFdto);
-        incNumObjectsUpdated();
-        log.info("number objects updated: {}", getNumObjectsUpdated());
-    }
-
-    public void incNumObjectsWritten() {
-        numObjectsWritten++;
-    }
-
-    public int getNumObjectsWritten() {
-        return numObjectsWritten;
-    }
-
-    public void setNumObjectsWritten(int numObjectsWritten) {
-        this.numObjectsWritten = numObjectsWritten;
-    }
-
-    public void incNumObjectsUpdated() {
-        numObjectsUpdated++;
-    }
-
-    public int getNumObjectsUpdated() {
-        return numObjectsUpdated;
-    }
-
-    public void setNumObjectsUpdated(int numObjectsUpdated) {
-        this.numObjectsUpdated = numObjectsUpdated;
-    }
 }

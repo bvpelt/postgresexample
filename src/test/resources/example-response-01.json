@@ -1943,10 +1943,10 @@
     }
   ],
   "Paging": {
-    "AantalPaginas": 10,
+    "AantalPaginas": 1,
     "HuidigePagina": 1,
     "VolgendeUrl": "/~/koop/veenendaal/appartement/p2/",
     "VorigeUrl": null
   },
-  "TotaalAantalObjecten": 145
+  "TotaalAantalObjecten": 15
 }

@@ -1,38 +1,24 @@
-package nl.bsoft.services;
+package nl.bsoft.fun01;
 
-import nl.bsoft.fun01.FunObject;
-import nl.bsoft.fun01.FunProcessor;
-import nl.bsoft.fun01.FunReader;
-import nl.bsoft.fun01.FunResponse;
 import nl.bsoft.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import javax.transaction.Transactional;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 /**
- * Created by bvpelt on 4/17/17.
+ * Created by bvpelt on 5/20/17.
  */
-@RestController
-public class FunUpdateController {
-    private final Logger log = LoggerFactory.getLogger(FunUpdateController.class);
 
-    private int numObjectsRead = 0;
-    private int numObjectsWritten = 0;
-    private int numObjectsUpdated = 0;
-    private int status = 1; // 1 - success; -1 - failure
-
+public class FunProcessor {
+    private static final Logger log = LoggerFactory.getLogger(FunProcessor.class);
 
     private FunObjectRepository repository;
     private FunListRepository listRepository;
@@ -41,7 +27,11 @@ public class FunUpdateController {
     private FunPromoLabelObjectRepository promolabelRepository;
     private FunPrijsRepository prijsRepository;
     private FunKoopPrijsRepository koopPrijsRepository;
+    private int numObjectsWritten = 0;
+    private int numObjectsUpdated = 0;
+    private int status = 1; // 1 - success; -1 - failure
 
+    /*
     @Autowired
     public void setRepository(FunObjectRepository repository) {
         this.repository = repository;
@@ -76,119 +66,9 @@ public class FunUpdateController {
     public void setKoopPrijsRepository(FunKoopPrijsRepository repository) {
         this.koopPrijsRepository = repository;
     }
-
-    @Bean
-    RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
-
-    //    @Bean
-    ItemReader<FunResponse> funReader(String url,
-                                      RestTemplate restTemplate) {
-        return new FunReader(
-                url,
-                restTemplate
-        );
-    }
-
-    @RequestMapping("/update")
-    public FunUpdateResult update() {
-        log.info("Start updating data");
-
-        int page = 1;
-        boolean goOn = true;
-
-        FunProcessor processor = new FunProcessor();
-        processor.setRepository(repository);
-        processor.setPrijsRepository(prijsRepository);
-        processor.setProductRepository(productRepository);
-        processor.setPromolabelRepository(promolabelRepository);
-        processor.setProjectRepository(projectRepository);
-        processor.setListRepository(listRepository);
-        processor.setKoopPrijsRepository(koopPrijsRepository);
-
-        while (goOn) {
-            log.info("Reading page {}", page);
-            FunResponse response = readFunda(page);
-            if (response == null) {
-                goOn = false;
-            } else {
-                for (FunObject f : response.getObjects()) {
-                    incNumObjectsRead();
-                    log.info("number objects read: {}", getNumObjectsRead());
-                    processor.storeObject(f);
-                }
-                page++;
-                if (page > response.getPaging().getAantalPaginas().intValue()) {
-                    goOn = false;
-                }
-            }
-        }
-
-        FunUpdateResult fur = new FunUpdateResult();
-        fur.setNumObjectsRead(getNumObjectsRead());
-        fur.setNumObjectsWritten(processor.getNumObjectsWritten());
-        fur.setNumObjectsUpdated(processor.getNumObjectsUpdated());
-        fur.setStatus(processor.getStatus());
-
-        return fur;
-    }
-
-
-    private FunResponse readFunda(int page) {
-        log.info("Start reading page: {}", page);
-
-        String url = "http://partnerapi.funda.nl/feeds/Aanbod.svc/json/a001e6c3ee6e4853ab18fe44cc1494de/?type=koop&zo=/veenendaal/appartement/&page=";
-        String myUrl = url + Integer.toString(page);
-        ItemReader<FunResponse> reader = funReader(myUrl, restTemplate());
-        FunResponse fobj = null;
-
-        String fileName = "/tmp/funda_data.log";
-        File fileOutput = new File(fileName);
-        boolean append = false;
-        if (fileOutput.exists()) {
-            append = true;
-        } else {
-            try {
-                fileOutput.createNewFile();
-                append = true;
-                log.info("Created new file: {}", fileName);
-            } catch (IOException e) {
-                log.error("Couldnot create file: {} {}", fileName, e);
-            }
-        }
-        log.info("Check if file: {} exists, result: {}", fileName, append);
-        FileWriter file = null;
-        try {
-            log.info("Writing output to file: {}, append: {}", fileName, append);
-            file = new FileWriter(fileName, append);
-
-            fobj = reader.read();
-            file.write("Writing page: " + Integer.toString(page) + "\n");
-            for (FunObject f : fobj.getObjects()) {
-                file.write(f.toJsonString());
-                file.write("\n");
-            }
-
-            log.info("Aantal paginas : {}", fobj.getPaging().getAantalPaginas());
-            log.info("Huidige pagina : {}", fobj.getPaging().getHuidigePagina());
-            log.info("Volgende pagina: {}", fobj.getPaging().getVolgendeUrl());
-        } catch (Exception e) {
-            log.error("No object found", e);
-        } finally {
-            try {
-                file.flush();
-            } catch (IOException e) {
-                log.error("Cannot flush to file: {} {}", fileName, e);
-            }
-        }
-        log.info("End   reading page: {}", page);
-        return fobj;
-    }
-
-    // using transactions in spring boot http://stackoverflow.com/questions/28606518/spring-boot-spring-data-jpa-transactions-not-working-properly
+*/
     @Transactional
-    private void storeObject(FunObject f) {
+    public void storeObject(FunObject f) {
         log.info("storeObject -- retrieved huis {}, adres: {}", f.getGlobalId(), f.getAdres());
 
         try {
@@ -218,6 +98,7 @@ public class FunUpdateController {
         FunProjectDTO fprojectdto = fdto.getProject();
         FunPromoLabelObjectDTO fpromo = fdto.getPromoLabel();
         FunPrijsDTO fpdto = fdto.getPrijs();
+       // List<FunKoopPrijsDTO> fkoopPrijzen = fdto.getKoopPrijzen();
 
         projectRepository.save(fprojectdto);
         promolabelRepository.save(fpromo);
@@ -240,7 +121,15 @@ public class FunUpdateController {
             productRepository.save(curProduct);
         }
 
+        // No prizes recorded, insert known price
+        FunKoopPrijsDTO lastKnownPrijs = new FunKoopPrijsDTO();
+        lastKnownPrijs.setKoopprijs(fdto.getKoopprijs());
+        lastKnownPrijs.setOpslagDatum(fdto.getPublicatieDatum());
+        fdto.addKoopPrijs(lastKnownPrijs);
+        koopPrijsRepository.save(lastKnownPrijs);
+
         repository.save(fdto);
+
         incNumObjectsWritten();
         log.info("number objects written: {}", getNumObjectsWritten());
     }
@@ -254,6 +143,7 @@ public class FunUpdateController {
         FunProjectDTO fprojectdto = oldFdto.getProject();
         FunPromoLabelObjectDTO fpromo = oldFdto.getPromoLabel();
         FunPrijsDTO fpdto = oldFdto.getPrijs();
+       // List<FunKoopPrijsDTO> fkoopPrijzen = oldFdto.getKoopPrijzen();
 
         projectRepository.save(fprojectdto);
         promolabelRepository.save(fpromo);
@@ -277,22 +167,31 @@ public class FunUpdateController {
             productRepository.save(curProduct);
         }
 
+        Pageable pageable = new PageRequest(0,1);
+        List<FunKoopPrijsDTO> lastPrijs;
+        lastPrijs = koopPrijsRepository.findByFunObjectIdOrderByOpslagDatumDesc(oldFdto.getId(), pageable);
+
+        if ((null == lastPrijs) || (lastPrijs.size() == 0)){
+            // No prizes recorded, insert known price
+            FunKoopPrijsDTO lastKnownPrijs = new FunKoopPrijsDTO();
+            lastKnownPrijs.setKoopprijs(oldFdto.getKoopprijs());
+            lastKnownPrijs.setOpslagDatum(oldFdto.getPublicatieDatum());
+            oldFdto.addKoopPrijs(lastKnownPrijs);
+            koopPrijsRepository.save(lastKnownPrijs);
+        } else {
+            if (oldFdto.getKoopprijs().compareTo(lastPrijs.get(0).getKoopprijs()) != 0) {
+                FunKoopPrijsDTO lastKnownPrijs = new FunKoopPrijsDTO();
+                lastKnownPrijs.setKoopprijs(oldFdto.getKoopprijs());
+                Date now = Calendar.getInstance().getTime();
+                lastKnownPrijs.setOpslagDatum(now);
+                oldFdto.addKoopPrijs(lastKnownPrijs);
+                koopPrijsRepository.save(lastKnownPrijs);
+            }
+        }
+
         repository.save(oldFdto);
         incNumObjectsUpdated();
         log.info("number objects updated: {}", getNumObjectsUpdated());
-    }
-
-
-    public int getNumObjectsRead() {
-        return numObjectsRead;
-    }
-
-    public void setNumObjectsRead(int numObjectsRead) {
-        this.numObjectsRead = numObjectsRead;
-    }
-
-    public void incNumObjectsRead() {
-        numObjectsRead++;
     }
 
     public void incNumObjectsWritten() {
@@ -319,4 +218,67 @@ public class FunUpdateController {
         this.numObjectsUpdated = numObjectsUpdated;
     }
 
+    public FunObjectRepository getRepository() {
+        return repository;
+    }
+
+    public void setRepository(FunObjectRepository repository) {
+        this.repository = repository;
+    }
+
+    public FunListRepository getListRepository() {
+        return listRepository;
+    }
+
+    public void setListRepository(FunListRepository listRepository) {
+        this.listRepository = listRepository;
+    }
+
+    public FunProductRepository getProductRepository() {
+        return productRepository;
+    }
+
+    public void setProductRepository(FunProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+
+    public FunProjectRepository getProjectRepository() {
+        return projectRepository;
+    }
+
+    public void setProjectRepository(FunProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
+    }
+
+    public FunPromoLabelObjectRepository getPromolabelRepository() {
+        return promolabelRepository;
+    }
+
+    public void setPromolabelRepository(FunPromoLabelObjectRepository promolabelRepository) {
+        this.promolabelRepository = promolabelRepository;
+    }
+
+    public FunPrijsRepository getPrijsRepository() {
+        return prijsRepository;
+    }
+
+    public void setPrijsRepository(FunPrijsRepository prijsRepository) {
+        this.prijsRepository = prijsRepository;
+    }
+
+    public FunKoopPrijsRepository getKoopPrijsRepository() {
+        return koopPrijsRepository;
+    }
+
+    public void setKoopPrijsRepository(FunKoopPrijsRepository koopPrijsRepository) {
+        this.koopPrijsRepository = koopPrijsRepository;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
 }

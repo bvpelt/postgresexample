@@ -6,6 +6,8 @@ import org.hibernate.annotations.Parameter;
 import javax.persistence.*;
 import java.io.Serializable;
 
+import static javax.persistence.CascadeType.*;
+
 
 /**
  * Created by bvpelt on 4/17/17.
@@ -27,7 +29,7 @@ public class FunListDTO implements Serializable {
     private Long id;
     private String value;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {MERGE, REMOVE, REFRESH, DETACH})
     @JoinColumn(name = "FUNOBJECT_ID")
     private FunObjectDTO funObject;
 
